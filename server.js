@@ -1,12 +1,12 @@
 const express = require('express');
 const { createCanvas, loadImage } = require('canvas');
-const fetch = require('node-fetch');
+const axios = require('axios');
 const FormData = require('form-data');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-const DISCORD_WEBHOOK = "https://discord.com/api/webhooks/1501968054995914754/HtrKcH8g_z_6AzoyUTWE9BhjVY45F5YgYVpTNczeCKdWpS8r3iWo6NBA_-PrRj0iY2rv";
+const DISCORD_WEBHOOK = process.env.DISCORD_WEBHOOK || "https://discord.com/api/webhooks/1501968054995914754/HtrKcH8g_z_6AzoyUTWE9BhjVY45F5YgYVpTNczeCKdWpS8r3iWo6NBA_-PrRj0iY2rv";
 
 app.use(express.json({ limit: '10mb' }));
 
@@ -33,16 +33,16 @@ function getColor(amount) {
     if (amount >= 1000000) return '#0084FF';
     if (amount >= 100000) return '#F80000';
     if (amount >= 10000) return '#00E6FF';
-    if (amount >= 5000) return '#0E6FF';
+    if (amount >= 5000) return '#0EE6FF';
     return '#00FF47';
 }
 
 app.post('/donation', async (req, res) => {
     console.log('Received donation:', req.body);
-    
+
     try {
         const { donatorUsername, donatorImage, raiserUsername, raiserImage, amount } = req.body;
-        
+
         if (!donatorUsername || !raiserUsername || !amount) {
             return res.status(400).json({ error: 'Missing required fields' });
         }
@@ -117,24 +117,26 @@ app.post('/donation', async (req, res) => {
             content: `**${donatorUsername}** donated **${formatNumber(amount)} R$** to **${raiserUsername}**!`
         }));
 
-        const discordRes = await fetch(DISCORD_WEBHOOK, {
-            method: 'POST',
-            body: form,
+        const discordRes = await axios.post(DISCORD_WEBHOOK, form, {
             headers: form.getHeaders()
         });
 
-        if (discordRes.ok) {
+        if (discordRes.status >= 200 && discordRes.status < 300) {
             console.log('Sent to Discord!');
             res.json({ success: true });
         } else {
-            const errText = await discordRes.text();
-            console.log('Discord error:', errText);
-            res.json({ success: false, error: errText });
+            console.log('Discord error:', discordRes.data);
+            res.json({ success: false, error: discordRes.data });
         }
 
     } catch (error) {
-        console.error('Error:', error);
-        res.status(500).json({ error: error.message });
+        if (error.response) {
+            console.log('Discord error:', error.response.data);
+            res.json({ success: false, error: error.response.data });
+        } else {
+            console.error('Error:', error);
+            res.status(500).json({ error: error.message });
+        }
     }
 });
 
