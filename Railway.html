@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Roblox Donation Image Generator</title>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Montserrat', sans-serif;
+            text-align: center;
+            background: #1a1a1a;
+            color: white;
+            padding: 20px;
+        }
+        input, button {
+            display: block;
+            margin: 10px auto;
+            padding: 10px;
+            width: 280px;
+            font-size: 16px;
+        }
+        button {
+            background: #ff00aa;
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-size: 18px;
+            font-weight: bold;
+            border-radius: 8px;
+        }
+        button:hover { background: #ff33bb; }
+        canvas { background: #000; border-radius: 12px; margin-top: 20px; }
+    </style>
+</head>
+<body>
+    <h2>Roblox Donation Image Generator</h2>
+
+    <input type="text" id="donatorUsername" placeholder="Donator Username (e.g. gavilangalan2024)">
+    <input type="text" id="donatorImage" placeholder="Donator Avatar URL (optional)">
+    
+    <input type="text" id="raiserUsername" placeholder="Raiser Username (e.g. Alikis349)">
+    <input type="text" id="raiserImage" placeholder="Raiser Avatar URL (optional)">
+    
+    <input type="number" id="amount" placeholder="Donation Amount (e.g. 1000000)">
+    
+    <button onclick="generateImage()">Generate Image</button>
+
+    <canvas id="canvas" width="750" height="250"></canvas>
+
+    <script>
+        const canvas = document.getElementById("canvas");
+        const ctx = canvas.getContext("2d");
+
+        async function loadImage(url) {
+            return new Promise((resolve, reject) => {
+                const img = new Image();
+                img.crossOrigin = "anonymous";
+                img.onload = () => resolve(img);
+                img.onerror = () => resolve(null); // fallback
+                img.src = url;
+            });
+        }
+
+        async function generateImage() {
+            const donatorUser = document.getElementById("donatorUsername").value.trim() || "Anonymous";
+            const raiserUser = document.getElementById("raiserUsername").value.trim() || "Anonymous";
+            let amount = parseInt(document.getElementById("amount").value) || 1000000;
+
+            const donatorImgUrl = document.getElementById("donatorImage").value.trim() || 
+                "https://tr.rbxcdn.com/30DAY-AvatarHeadshot-310966282D3529E36976BF6B07B1DC90-Png/150/150/AvatarHeadshot/Png/isCircular";
+            
+            const raiserImgUrl = document.getElementById("raiserImage").value.trim() || 
+                "https://tr.rbxcdn.com/30DAY-AvatarHeadshot-310966282D3529E36976BF6B07B1DC90-Png/150/150/AvatarHeadshot/Png/isCircular";
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Background
+            const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+            gradient.addColorStop(0, "#0a0a0a");
+            gradient.addColorStop(1, "#4a0033");
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Bottom magenta bar
+            ctx.fillStyle = "#c3006b";
+            ctx.fillRect(0, 200, canvas.width, 50);
+
+            const amountStr = amount.toLocaleString("en-US");
+
+            // Load images
+            const donatorImg = await loadImage(donatorImgUrl);
+            const raiserImg = await loadImage(raiserImgUrl);
+            const robuxIcon = await loadImage("https://cdn.glitch.global/896737b4-8fcc-4908-b61b-d81db00d0019/sss.png?v=1741418797924");
+
+            // Draw circular avatars with pink border (like your example)
+            drawCircularAvatar(ctx, donatorImg, 130, 85, 58, "#ff00aa");
+            drawCircularAvatar(ctx, raiserImg, 620, 85, 58, "#ff00aa");
+
+            // Amount + Icon
+            ctx.font = "bold 58px Montserrat";
+            ctx.textAlign = "center";
+            ctx.fillStyle = "#ff00aa";
+            ctx.strokeStyle = "#000";
+            ctx.lineWidth = 8;
+            ctx.strokeText(amountStr, 375, 95);
+            ctx.fillText(amountStr, 375, 95);
+
+            // Robux icon next to amount
+            if (robuxIcon) {
+                ctx.drawImage(robuxIcon, 375 - ctx.measureText(amountStr).width/2 - 55, 55, 48, 48);
+            }
+
+            // "donated to"
+            ctx.font = "bold 32px Montserrat";
+            ctx.fillStyle = "#ffffff";
+            ctx.strokeStyle = "#000";
+            ctx.lineWidth = 6;
+            ctx.strokeText("donated to", 375, 135);
+            ctx.fillText("donated to", 375, 135);
+
+            // Usernames
+            ctx.font = "bold 22px Montserrat";
+            ctx.fillStyle = "#ffffff";
+            ctx.strokeStyle = "#000";
+            ctx.lineWidth = 4;
+            ctx.strokeText("@" + donatorUser, 130, 175);
+            ctx.fillText("@" + donatorUser, 130, 175);
+            
+            ctx.strokeText("@" + raiserUser, 620, 175);
+            ctx.fillText("@" + raiserUser, 620, 175);
+
+            // Optional: Auto-download
+            setTimeout(() => {
+                const link = document.createElement('a');
+                link.download = `donation-${amountStr}.png`;
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+            }, 300);
+        }
+
+        function drawCircularAvatar(ctx, img, x, y, radius, borderColor) {
+            ctx.save();
+            
+            // Clip to circle
+            ctx.beginPath();
+            ctx.arc(x, y, radius, 0, Math.PI * 2);
+            ctx.closePath();
+            ctx.clip();
+
+            if (img) {
+                ctx.drawImage(img, x - radius, y - radius, radius * 2, radius * 2);
+            } else {
+                // Fallback
+                ctx.fillStyle = "#666";
+                ctx.fillRect(x - radius, y - radius, radius * 2, radius * 2);
+            }
+
+            ctx.restore();
+
+            // Pink border
+            ctx.beginPath();
+            ctx.arc(x, y, radius, 0, Math.PI * 2);
+            ctx.lineWidth = 6;
+            ctx.strokeStyle = borderColor;
+            ctx.stroke();
+        }
+    </script>
+</body>
+</html>
